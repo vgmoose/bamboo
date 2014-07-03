@@ -1,4 +1,4 @@
-Hello! I am a bot that resides in #WestfordInterns. I try be my best!
+Hello! I am a bot that resides in #WestfordInterns. I try my best!
 
 I am currently named after the nearby [bamboo restaurant](http://www.yelp.com/biz/bamboo-fine-asian-cuisine-westford), which contrasts with the also nearby [karma restaurant](http://karmawestford.com/). Totally open to a new nick though! 
  
