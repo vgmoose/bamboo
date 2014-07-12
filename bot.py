@@ -46,6 +46,7 @@ def parseMessage(line):
 
 # set the score for the given subject and write it to disk
 def setPoints(subject, pts):
+    subject = subject.lower()
     if subject in karmaScores:
         karmaScores[subject] += pts
     else:
@@ -55,15 +56,17 @@ def setPoints(subject, pts):
 
 # get the score for the given subject
 def getPoints(subject):
+    subject = subject.lower()
     return karmaScores[subject]
 
 # returns the response given a sender, message, and channel
 def computeResponse(sender, message, channel):
-
+    global NICK
+    
     # if the ++/-- operator is present at the end of the line
     if message[-2:] in ["++", "--", "~~"]:
         symbol = message[-2:]
-        message = message[:-2].lower().rstrip().lstrip()
+        message = message[:-2].rstrip().lstrip()
         
         # determine how many points to give/take
         netgain = int(symbol=="++") - int(symbol=="--")
@@ -77,7 +80,7 @@ def computeResponse(sender, message, channel):
             return
         
         # if it's a user, give them karma, else give points to the phrase
-        if subject in currentusers:
+        if subject.lower() in currentusers:
             setPoints(subject, netgain)
             return "%s has %i karma" % (subject, getPoints(subject))
         else:
@@ -115,7 +118,11 @@ def computeResponse(sender, message, channel):
         global shared_source
         if not shared_source:
             shared_source = True
-            return "https://github.com/westford/bamboo/"
+            return "https://github.com/vgmoose/bamboo/"
+
+    elif message[:len(NICK)+7] == NICK+": /nick":
+        NICK = message[len(NICK)+7:].lstrip().rstrip()
+        s.send(bytes("NICK " + NICK + "\r\n"))
 
 
 while 1:
@@ -126,23 +133,37 @@ while 1:
     
     # go through each of the received lines
     for line in temp:
-#        print line
         line = line.rstrip()
         line = line.split()
         
+#        print line
+#        print currentusers
+
         # this is required so that the connection does not timeout
         if line[0] == "PING":
             s.send(bytes("PONG %s\r\n" % line[1]))
     
         # 353 = initial list of users in channel
         elif line[1] == "353":
-            currentusers = line[6:] + [NICK]
+            currentusers = [NICK]
+            newusers = line[6:]
+            for u in newusers:
+                u = u.lstrip("@").lstrip(":").lower()
+                currentusers.append(u)
+        
+        # update list of users when a nick is changed
+        elif line[1] == "NICK":
+            if not line[2] in currentusers:
+                currentusers.append(line[2].lstrip("@").lstrip(":").lower())
+               
+        elif line[1] == "433":
+            NICK = line[2]
 
         # update list of users currently online when new one joins
         elif line[1] == "JOIN":
             sender = parseSender(line)
             if not sender in currentusers:
-                currentusers.append(parseSender(line))
+                currentusers.append(parseSender(line).lstrip("@").lstrip(":").lower())
         
         # this if statement responds to received messages
         elif line[1] == "PRIVMSG":
