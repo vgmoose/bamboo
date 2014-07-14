@@ -1,20 +1,20 @@
 #!/usr/bin/env python
+import argparse
 import operator
 import pickle
 import socket
 import string
 import sys
 
-# server information
-HOST = "irc.freenode.net"
-PORT = 6667
-
-# personal information
-NICK = "bamboo"
-IDENT = "bamboo"
-REALNAME = "love me"
-CHANNEL = "#WestfordInterns"
-KARMAFILENAME = ".karmascores"
+parser = argparse.ArgumentParser(description="Bamboo argument parsing")
+parser.add_argument("-s", "--server", nargs='?', default="irc.freenode.net")
+parser.add_argument("-p", "--port", nargs='?', default=6667, type=int)
+parser.add_argument("-n", "--nick", nargs='?', default="bamboo")
+parser.add_argument("-i", "--ident", nargs='?', default="bamboo")
+parser.add_argument("-r", "--realname", nargs='?', default="love me")
+parser.add_argument("-c", "--channel", nargs='?', default="#WestfordInterns")
+parser.add_argument("-k", "--karmafile", nargs='?', default=".karmascores")
+args = parser.parse_args(sys.argv[1:])
 
 readbuffer = ""
 currentusers = []
@@ -22,19 +22,19 @@ shared_source = False
 
 # try to load the karma object
 try:
-    with open(KARMAFILENAME, 'rb') as file:
+    with open(args.karmafile, 'rb') as file:
         karmaScores = pickle.load(file)
 except:
     karmaScores = {}
 
 # connect to the server
 s=socket.socket()
-s.connect((HOST, PORT))
+s.connect((args.server, args.port))
 
 # join the channel and set nick
-s.send(bytes("NICK %s\r\n" % NICK))
-s.send(bytes("USER %s %s bla :%s\r\n" % (IDENT, HOST, REALNAME)))
-s.send(bytes("JOIN %s\r\n" % CHANNEL));
+s.send(bytes("NICK %s\r\n" % args.nick))
+s.send(bytes("USER %s %s bla :%s\r\n" % (args.ident, args.server, args.realname)))
+s.send(bytes("JOIN %s\r\n" % args.channel));
 
 # returns the sender
 def parseSender(line):
@@ -55,7 +55,7 @@ def setPoints(subject, pts):
         karmaScores[subject] += pts
     else:
         karmaScores[subject] = pts
-    with open(KARMAFILENAME, 'wb') as file:
+    with open(args.karmafile, 'wb') as file:
         pickle.dump(karmaScores, file)
 
 # get the score for the given subject
@@ -65,7 +65,7 @@ def getPoints(subject):
 
 # returns the response given a sender, message, and channel
 def computeResponse(sender, message, channel):
-    global NICK
+    global args
     
     # if the ++/-- operator is present at the end of the line
     if message[-2:] in ["++", "--", "~~"]:
@@ -124,9 +124,9 @@ def computeResponse(sender, message, channel):
             shared_source = True
             return "https://github.com/vgmoose/bamboo/"
 
-    elif message[:len(NICK)+7] == NICK+": /nick":
-        NICK = message[len(NICK)+7:].lstrip().rstrip()
-        s.send(bytes("NICK " + NICK + "\r\n"))
+    elif message[:len(args.nick)+7] == args.nick+": /nick":
+        args.nick = message[len(NICK)+7:].lstrip().rstrip()
+        s.send(bytes("NICK " + args.nick + "\r\n"))
 
 
 while 1:
@@ -149,7 +149,7 @@ while 1:
     
         # 353 = initial list of users in channel
         elif line[1] == "353":
-            currentusers = [NICK]
+            currentusers = [args.nick]
             newusers = line[6:]
             for u in newusers:
                 u = u.lstrip("@").lstrip(":").lower()
@@ -161,7 +161,7 @@ while 1:
                 currentusers.append(line[2].lstrip("@").lstrip(":").lower())
                
         elif line[1] == "433":
-            NICK = line[2]
+            args.nick = line[2]
 
         # update list of users currently online when new one joins
         elif line[1] == "JOIN":
@@ -182,4 +182,4 @@ while 1:
 
             # send the response to the channel, unless it's nothing
             if response:
-                s.send(bytes("PRIVMSG %s :%s \r\n" % (CHANNEL, response)))
+                s.send(bytes("PRIVMSG %s :%s \r\n" % (args.channel, response)))
