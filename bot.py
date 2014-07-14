@@ -1,5 +1,9 @@
 #!/usr/bin/env python
-import sys, socket, string, pickle, operator
+import operator
+import pickle
+import socket
+import string
+import sys
 
 # server information
 HOST = "irc.freenode.net"
