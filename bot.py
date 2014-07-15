@@ -78,6 +78,9 @@ def computeResponse(sender, message, channel):
         subject = message.split()
         if subject:
             subject = subject[-1]
+            # Total hack solution to nullstring bug for the time being...
+        else:
+            subject = "" 
         
         # can't give yourself karma
         if subject == sender and symbol != "~~":
