@@ -64,6 +64,11 @@ def getPoints(subject):
     subject = subject.lower()
     return karmaScores[subject]
 
+# do not engage off-channel users
+def politelyDoNotEngage(sender):
+    response = "[AUTO REPLY] I am not a human, apologies for any confusion."
+    s.send(bytes("PRIVMSG %s :%s \r\n" % (sender, response)))
+
 # returns the response given a sender, message, and channel
 def computeResponse(sender, message, channel):
     global args
@@ -180,6 +185,11 @@ while 1:
             sender = parseSender(line)
             message = parseMessage(line)
             channel = parseChannel(line)
+            
+            # if not on the channel, tell the user you're a bot
+            if channel != args.channel:
+                politelyDoNotEngage(sender)
+                continue
             
             # decide what type of response to have based on the message
             response = computeResponse(sender, message, channel)
