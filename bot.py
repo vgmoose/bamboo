@@ -14,6 +14,7 @@ parser.add_argument("-i", "--ident", nargs='?', default="bamboo")
 parser.add_argument("-r", "--realname", nargs='?', default="love me")
 parser.add_argument("-c", "--channel", nargs='?', default="#WestfordInterns")
 parser.add_argument("-k", "--karmafile", nargs='?', default=".karmascores")
+parser.add_argument("-d", "--debug", action="store_true")
 args = parser.parse_args(sys.argv[1:])
 
 readbuffer = ""
@@ -143,8 +144,8 @@ while 1:
         line = line.rstrip()
         line = line.split()
         
-#        print line
-#        print currentusers
+        if args.debug:
+            print line
 
         # this is required so that the connection does not timeout
         if line[0] == "PING":
