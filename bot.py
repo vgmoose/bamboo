@@ -116,7 +116,7 @@ def computeResponse(sender, message, channel):
             if tup[0] in currentusers and count_users < 5:
                 top_users += " %s=%i," % tup
                 count_users += 1
-            elif count_phrases < 5:
+            if tup[0] not in currentusers and count_phrases < 5:
                 top_phrases += " \"%s\"=%i," % tup
                 count_phrases += 1
 
