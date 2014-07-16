@@ -128,7 +128,7 @@ def computeResponse(sender, message, channel):
             return "https://github.com/vgmoose/bamboo/"
 
     elif message[:len(args.nick)+7] == args.nick+": /nick":
-        args.nick = message[len(NICK)+7:].lstrip().rstrip()
+        args.nick = message[len(args.nick)+7:].lstrip().rstrip()
         s.send(bytes("NICK " + args.nick + "\r\n"))
 
 
