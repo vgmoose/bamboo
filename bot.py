@@ -14,6 +14,7 @@ parser.add_argument("-i", "--ident", nargs='?', default="bamboo")
 parser.add_argument("-r", "--realname", nargs='?', default="love me")
 parser.add_argument("-c", "--channel", nargs='?', default="#WestfordInterns")
 parser.add_argument("-k", "--karmafile", nargs='?', default=".karmascores")
+parser.add_argument("-a", "--statsfile", nargs='?', default=".stats")
 parser.add_argument("-d", "--debug", action="store_true")
 args = parser.parse_args(sys.argv[1:])
 
@@ -27,6 +28,13 @@ try:
         karmaScores = pickle.load(file)
 except:
     karmaScores = {}
+
+#try to load stats object
+try:
+    with open(args.statsfile, 'rb') as file:
+        stats = pickle.load(file)
+except:
+    stats = {}
 
 # connect to the server
 s=socket.socket()
@@ -64,6 +72,16 @@ def getPoints(subject):
     subject = subject.lower()
     return karmaScores[subject]
 
+# set stats
+def setStats(subject):
+    subject = subject.lower()
+    if subject in stats:
+        stats[subject] += 1
+    else:
+        stats[subject] = 1
+    with open(args.statsfile, 'wb') as file:
+        pickle.dump(stats, file)
+
 # do not engage off-channel users
 def politelyDoNotEngage(sender):
     response = "[AUTO REPLY] I am not a human, apologies for any confusion."
@@ -72,6 +90,8 @@ def politelyDoNotEngage(sender):
 # returns the response given a sender, message, and channel
 def computeResponse(sender, message, channel):
     global args
+
+    setStats(sender)
     
     # if the ++/-- operator is present at the end of the line
     if message[-2:] in ["++", "--", "~~"]:
@@ -126,6 +146,17 @@ def computeResponse(sender, message, channel):
                 count_phrases += 1
 
         return top_users + " " + top_phrases[:-1]
+
+    elif message[:5] == "stats":
+        top_users = "Top 5 Users by Volume:"
+        count_users = 0
+        sorted_stats = sorted(stats.iteritems(), key=operator.itemgetter(1))
+        sorted_stats.reverse()
+        for tup in sorted_stats:
+            if tup[0] in currentusers and count_users < 5:
+                top_users += " %s=%i," % tup
+                count_users += 1
+        return top_users[:-1]
 
     elif message == "sharesource":
         global shared_source
