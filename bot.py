@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import argparse
 import operator
 import pickle
@@ -227,4 +229,4 @@ while 1:
 
             # send the response to the channel, unless it's nothing
             if response:
-                s.send(bytes("PRIVMSG %s :%s \r\n" % (args.channel, response)))
+                s.send(bytes("PRIVMSG %s :%s \r\n" % (args.channel, response.encode("UTF-8"))))
