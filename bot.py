@@ -84,6 +84,10 @@ def setStats(subject):
     with open(args.statsfile, 'wb') as file:
         pickle.dump(stats, file)
 
+def getStats(subject):
+    subject = subject.lower()
+    return stats[subject]
+
 # do not engage off-channel users
 def politelyDoNotEngage(sender):
     response = "[AUTO REPLY] I am not a human, apologies for any confusion."
@@ -159,6 +163,24 @@ def computeResponse(sender, message, channel):
             if tup[0] in currentusers and count_users < 5:
                 top_users += " %s=%i," % tup
                 count_users += 1
+        return top_users[:-1]
+
+    elif message[:7] == "quality":
+        top_users = "Top 5 Users by Quality:"
+        count_users = 0
+        sorted_quality = {}
+        sorted_stats = sorted(stats.iteritems(), key=operator.itemgetter(0))
+        sorted_karma = sorted(karmaScores.iteritems(), key=operator.itemgetter(0))
+        for stats_tup in sorted_stats:
+            for karma_tup in sorted_karma:
+                if stats_tup[0] == karma_tup[0] and karma_tup[0] in currentusers:
+                    sorted_quality[stats_tup[0]] = (karma_tup[1] / float(stats_tup[1]) * 100)
+                    break
+        sorted_quality = sorted(sorted_quality.iteritems(), key=operator.itemgetter(1))
+        for tup in sorted_quality:
+            if count_users < 5:
+                top_users += " %s=%f," % tup
+                count_users += 1 
         return top_users[:-1]
 
     elif message == "sharesource":
