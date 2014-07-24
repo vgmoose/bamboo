@@ -37,6 +37,7 @@ parser.add_argument("-c", "--channel", nargs='?', default="#WestfordInterns")
 parser.add_argument("-k", "--karmafile", nargs='?', default=".karmascores")
 parser.add_argument("-a", "--statsfile", nargs='?', default=".stats")
 parser.add_argument("-d", "--debug", action="store_true")
+parser.add_argument("-g", "--generousfile", nargs='?', default=".generous")
 args = parser.parse_args(sys.argv[1:])
 
 readbuffer = ""
@@ -56,6 +57,13 @@ try:
         stats = pickle.load(file)
 except:
     stats = {}
+
+#try to load generous object
+try:
+    with open(args.generousfile, 'rb') as file:
+        generous = pickle.load(file)
+except:
+    generous = {}
 
 # connect to the server
 s=socket.socket()
@@ -103,6 +111,15 @@ def setStats(subject):
     with open(args.statsfile, 'wb') as file:
         pickle.dump(stats, file)
 
+def setGenerosity(subject, netgain):
+    subject = subject.lower()
+    if subject in generous:
+        generous[subject] += netgain
+    else:
+        generous[subject] = 1
+    with open(args.generousfile, 'wb') as file:
+        pickle.dump(generous, file)
+
 # do not engage off-channel users
 def politelyDoNotEngage(sender):
     response = "[AUTO REPLY] I am not a human, apologies for any confusion."
@@ -136,6 +153,7 @@ def computeResponse(sender, message, channel):
         # if it's a user, give them karma, else give points to the phrase
         if subject.lower() in currentusers:
             setPoints(subject, netgain)
+            setGenerosity(sender, netgain)
             return "%s has %i karma" % (subject, getPoints(subject))
         else:
             setPoints(message.lstrip(), netgain)
@@ -168,7 +186,7 @@ def computeResponse(sender, message, channel):
 
         return top_users + " " + top_phrases[:-1]
 
-    elif message[:5] == "stats"
+    elif message[:5] == "stats":
         top_users = "Top 5 Users by Volume:"
         count_users = 0
         sorted_stats = sorted(stats.iteritems(), key=operator.itemgetter(1))
@@ -178,6 +196,23 @@ def computeResponse(sender, message, channel):
                 top_users += " %s=%i," % tup
                 count_users += 1
         return top_users
+
+    elif message[:10] == "generosity":
+        most_generous = "Top 5 Most Generous Users:"
+        most_stingy = "Top 5 Stingiest Users:"
+        count_gen = 0
+        count_sting = 0
+        sorted_gen = sorted(generous.iteritems(), key=operator.itemgetter(1))
+        for tup in sorted_gen:
+            if tup[0] in currentusers and count_gen < 5:
+                most_generous += " %s=%i," % tup
+                count_gen += 1
+        sorted_gen.reverse()
+        for tup in sorted_gen:
+            if tup[0] in currentusers and count_sting < 5:
+                most_stingy += " %s=%i," % tup
+                count_sting += 1
+        return most_generous[:-1] + " " + most_stingy[:-1]
 
     elif message == "sharesource":
         global shared_source
