@@ -175,18 +175,19 @@ def computeResponse(sender, message, channel):
         for stats_tup in sorted_stats:
             for karma_tup in sorted_karma:
                 if stats_tup[0] == karma_tup[0] and karma_tup[0] in currentusers:
-                    sorted_quality[stats_tup[0]] = (karma_tup[1] / float(stats_tup[1]) * 100)
-                    break
+                    if stats_tup[1] != 0 and karma_tup[1] != 0:
+                        sorted_quality[stats_tup[0]] = (karma_tup[1]/float(stats_tup[1])*100)
+                        break
         sorted_quality = sorted(sorted_quality.iteritems(), key=operator.itemgetter(1))
         for tup in sorted_quality:
             if count_users < 5:
-                top_users += " %s=%f," % tup
+                top_users += " %s=%.3f," % tup
                 count_users += 1 
         count_users = 0
         sorted_quality.reverse() 
         for tup in sorted_quality:
             if count_users < 5:
-                spam_users += " %s=%f," % tup
+                spam_users += " %s=%.3f," % tup
                 count_users += 1 
         return top_users[:-1] + " " + spam_users[:-1]
 
