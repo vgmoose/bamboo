@@ -93,7 +93,8 @@ def politelyDoNotEngage(sender):
 def computeResponse(sender, message, channel):
     global args
 
-    setStats(sender)
+    if sender:
+        setStats(sender)
     
     # if the ++/-- operator is present at the end of the line
     if message[-2:] in ["++", "--", "~~"]:
