@@ -20,6 +20,8 @@
 """
 
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import argparse
 import operator
 import pickle
@@ -120,6 +122,10 @@ def setGenerosity(subject, netgain):
     with open(args.generousfile, 'wb') as file:
         pickle.dump(generous, file)
 
+def getStats(subject):
+    subject = subject.lower()
+    return stats[subject]
+
 # do not engage off-channel users
 def politelyDoNotEngage(sender):
     response = "[AUTO REPLY] I am not a human, apologies for any confusion."
@@ -129,7 +135,8 @@ def politelyDoNotEngage(sender):
 def computeResponse(sender, message, channel):
     global args
 
-    setStats(sender)
+    if sender:
+        setStats(sender)
     
     # if the ++/-- operator is present at the end of the line
     if message[-2:] in ["++", "--", "~~"]:
@@ -195,7 +202,7 @@ def computeResponse(sender, message, channel):
             if tup[0] in currentusers and count_users < 5:
                 top_users += " %s=%i," % tup
                 count_users += 1
-        return top_users
+        return top_users[-1]
 
     elif message[:10] == "generosity":
         most_generous = "Top 5 Most Generous Users:"
@@ -214,6 +221,39 @@ def computeResponse(sender, message, channel):
                 count_sting += 1
         return most_generous[:-1] + " " + most_stingy[:-1]
 
+    elif message[:7] == "quality":
+        top_users = "Top 5 Users by Quality:"
+        spam_users = "The Round Table of Spamalot:"
+        count_users = 0
+        sorted_quality = {}
+        sorted_stats = sorted(stats.iteritems(), key=operator.itemgetter(0))
+        sorted_karma = sorted(karmaScores.iteritems(), key=operator.itemgetter(0))
+        for stats_tup in sorted_stats:
+            for karma_tup in sorted_karma:
+                if stats_tup[0] == karma_tup[0] and karma_tup[0] in currentusers:
+                    if stats_tup[1] != 0:
+                        if karma_tup[1] <= 0:
+                            k = 1
+                        else:
+                            k = karma_tup[1] 
+                        sorted_quality[stats_tup[0]] = (k/float(stats_tup[1])*100)
+                        break
+        sorted_quality = sorted(sorted_quality.iteritems(), key=operator.itemgetter(1))
+        sorted_quality.reverse() 
+        for tup in sorted_quality:
+            if count_users < 5:
+                top_users += " %s=%.2f," % tup
+                count_users += 1 
+        count_users = 0
+        sorted_quality.reverse() 
+        for tup in sorted_quality:
+            if count_users < 5:
+                spam_users += " %s=%.2f," % tup
+                count_users += 1 
+        s.send(bytes("PRIVMSG %s :%s\r\n" % (channel, top_users[:-1].encode("UTF-8")))) 
+        s.send(bytes("PRIVMSG %s :%s\r\n" % (channel, spam_users[:-1].encode("UTF-8")))) 
+        #return top_users[:-1] + ' ' + spam_users[:-1]
+
     elif message == "sharesource":
         global shared_source
         if not shared_source:
@@ -222,7 +262,7 @@ def computeResponse(sender, message, channel):
 
     elif message[:len(args.nick)+7] == args.nick+": /nick":
         args.nick = message[len(args.nick)+7:].lstrip().rstrip()
-        s.send(bytes("NICK " + args.nick + "\r\n"))
+        s.send(bytes("NICK" + args.nick + "\r\n"))
 
 
 while 1:
@@ -283,4 +323,4 @@ while 1:
 
             # send the response to the channel, unless it's nothing
             if response:
-                s.send(bytes("PRIVMSG %s :%s \r\n" % (args.channel, response)))
+                s.send(bytes("PRIVMSG %s :%s \r\n" % (args.channel, response.encode("UTF-8"))))
