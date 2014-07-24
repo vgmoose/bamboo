@@ -167,6 +167,7 @@ def computeResponse(sender, message, channel):
 
     elif message[:7] == "quality":
         top_users = "Top 5 Users by Quality:"
+        spam_users = "The Round Table of Spamalot:"
         count_users = 0
         sorted_quality = {}
         sorted_stats = sorted(stats.iteritems(), key=operator.itemgetter(0))
@@ -181,7 +182,13 @@ def computeResponse(sender, message, channel):
             if count_users < 5:
                 top_users += " %s=%f," % tup
                 count_users += 1 
-        return top_users[:-1]
+        count_users = 0
+        sorted_quality.reverse() 
+        for tup in sorted_quality:
+            if count_users < 5:
+                spam_users += " %s=%f," % tup
+                count_users += 1 
+        return top_users[:-1] + " " + spam_users[:-1]
 
     elif message == "sharesource":
         global shared_source
