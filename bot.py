@@ -130,6 +130,18 @@ def getStats(subject):
     subject = subject.lower()
     return stats[subject]
 
+def getQuality(subject):
+    stats = getStats(subject)
+    karma = getPoints(subject)
+    if stats != 0:
+        if karma <= 0:
+            k = 1
+        else:
+            k = karma 
+            quality = (k/float(stats)*100)
+            
+    return quality
+
 # do not engage off-channel users
 def politelyDoNotEngage(sender):
     response = "[AUTO REPLY] I am not a human, apologies for any confusion."
@@ -143,9 +155,10 @@ def computeResponse(sender, message, channel):
         setStats(sender)
     
     # if the ++/-- operator is present at the end of the line
-    if message[-2:] in ["++", "--", "~~"]:
+    if message[-2:] in ["++", "--", "~~", "**"]:
         symbol = message[-2:]
         message = message[:-2].rstrip().lstrip()
+
         
         # determine how many points to give/take
         netgain = int(symbol=="++") - int(symbol=="--")
@@ -156,7 +169,10 @@ def computeResponse(sender, message, channel):
             # Total hack solution to nullstring bug for the time being...
         else:
             subject = "" 
-        
+            
+        if symbol == "**":
+            return "%s has %.2f%% quality posts"  % (subject, getQuality(subject))
+
         # can't give yourself karma
         if subject == sender and symbol != "~~":
             return
@@ -247,13 +263,13 @@ def computeResponse(sender, message, channel):
         sorted_quality.reverse() 
         for tup in sorted_quality:
             if count_users < 5:
-                top_users += " %s=%.2f," % tup
+                top_users += " %s=%.2f%%," % tup
                 count_users += 1 
         count_users = 0
         sorted_quality.reverse() 
         for tup in sorted_quality:
             if count_users < 5:
-                spam_users += " %s=%.2f," % tup
+                spam_users += " %s=%.2f%%," % tup
                 count_users += 1
         return [top_users[:-1], spam_users[:-1]]
 
