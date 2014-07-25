@@ -214,6 +214,7 @@ def computeResponse(sender, message, channel):
         count_gen = 0
         count_sting = 0
         sorted_gen = sorted(generous.iteritems(), key=operator.itemgetter(1))
+        sorted_gen.reverse()
         for tup in sorted_gen:
             if tup[0] in currentusers and count_gen < 5:
                 most_generous += " %s=%i," % tup
