@@ -2,7 +2,7 @@
 
     Bamboo is an IRC karma-tracking bot
 
-    Copyright (C) 2014 Ricky Ayoub <youremail@here.com>
+    Copyright (C) 2014 Red Hat Westford Interns
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -84,6 +84,10 @@ def parseSender(line):
 def parseChannel(line):
     return line[2]
 
+# send to the specified user or channel
+def sendTo(destination, message):
+    s.send(bytes("PRIVMSG %s :%s\r\n" % (destination, message.encode("UTF-8"))))
+
 # returns the message
 def parseMessage(line):
     return " ".join(line[3:])[1:].rstrip().lstrip()
@@ -129,7 +133,7 @@ def getStats(subject):
 # do not engage off-channel users
 def politelyDoNotEngage(sender):
     response = "[AUTO REPLY] I am not a human, apologies for any confusion."
-    s.send(bytes("PRIVMSG %s :%s \r\n" % (sender, response)))
+    sendTo(sender, response)
 
 # returns the response given a sender, message, and channel
 def computeResponse(sender, message, channel):
@@ -191,7 +195,7 @@ def computeResponse(sender, message, channel):
                 top_phrases += " \"%s\"=%i," % tup
                 count_phrases += 1
 
-        return top_users + " " + top_phrases[:-1]
+        return [top_users[:-1], top_phrases[:-1]]
 
     elif message[:5] == "stats":
         top_users = "Top 5 Users by Volume:"
@@ -202,7 +206,7 @@ def computeResponse(sender, message, channel):
             if tup[0] in currentusers and count_users < 5:
                 top_users += " %s=%i," % tup
                 count_users += 1
-        return top_users[-1]
+        return top_users[:-1]
 
     elif message[:10] == "generosity":
         most_generous = "Top 5 Most Generous Users:"
@@ -219,7 +223,7 @@ def computeResponse(sender, message, channel):
             if tup[0] in currentusers and count_sting < 5:
                 most_stingy += " %s=%i," % tup
                 count_sting += 1
-        return most_generous[:-1] + " " + most_stingy[:-1]
+        return [most_generous[:-1], most_stingy[:-1]]
 
     elif message[:7] == "quality":
         top_users = "Top 5 Users by Quality:"
@@ -249,10 +253,8 @@ def computeResponse(sender, message, channel):
         for tup in sorted_quality:
             if count_users < 5:
                 spam_users += " %s=%.2f," % tup
-                count_users += 1 
-        s.send(bytes("PRIVMSG %s :%s\r\n" % (channel, top_users[:-1].encode("UTF-8")))) 
-        s.send(bytes("PRIVMSG %s :%s\r\n" % (channel, spam_users[:-1].encode("UTF-8")))) 
-        #return top_users[:-1] + ' ' + spam_users[:-1]
+                count_users += 1
+        return [top_users[:-1], spam_users[:-1]]
 
     elif message == "sharesource":
         global shared_source
@@ -262,7 +264,7 @@ def computeResponse(sender, message, channel):
 
     elif message[:len(args.nick)+7] == args.nick+": /nick":
         args.nick = message[len(args.nick)+7:].lstrip().rstrip()
-        s.send(bytes("NICK" + args.nick + "\r\n"))
+        s.send(bytes("NICK " + args.nick + "\r\n"))
 
 
 while 1:
@@ -323,4 +325,9 @@ while 1:
 
             # send the response to the channel, unless it's nothing
             if response:
-                s.send(bytes("PRIVMSG %s :%s \r\n" % (args.channel, response.encode("UTF-8"))))
+                if type(response) is not list:
+                    response = [response]
+                
+                # send each string in returned array
+                for line in response:
+                    sendTo(args.channel, line)
