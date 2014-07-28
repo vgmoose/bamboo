@@ -130,17 +130,17 @@ def getStats(subject):
     subject = subject.lower()
     return stats[subject]
 
-def getQuality(subject):
-    stats = getStats(subject)
-    karma = getPoints(subject)
+def getQuality(subject, stats, karma):
     if stats != 0:
         if karma <= 0:
             k = 1
         else:
             k = karma 
-            quality = (k/float(stats)*100)
-            
-    return quality
+        
+        quality = (k/float(stats)*100)
+        return quality
+
+    return 0
 
 # do not engage off-channel users
 def politelyDoNotEngage(sender):
@@ -171,7 +171,9 @@ def computeResponse(sender, message, channel):
             subject = "" 
             
         if symbol == "**":
-            return "%s has %.2f%% quality posts"  % (subject, getQuality(subject))
+            usrstats = getStats(subject)
+            usrkarma = getPoints(subject)
+            return "%s has %.2f%% quality posts"  % (subject, getQuality(subject, usrstats, usrkarma))
 
         # can't give yourself karma
         if subject == sender and symbol != "~~":
@@ -252,13 +254,14 @@ def computeResponse(sender, message, channel):
         for stats_tup in sorted_stats:
             for karma_tup in sorted_karma:
                 if stats_tup[0] == karma_tup[0] and karma_tup[0] in currentusers:
-                    if stats_tup[1] != 0:
-                        if karma_tup[1] <= 0:
-                            k = 1
-                        else:
-                            k = karma_tup[1] 
-                        sorted_quality[stats_tup[0]] = (k/float(stats_tup[1])*100)
-                        break
+                    sorted_quality[stats_tup[0]] = getQuality(stats_tup[0], stats_tup[1], karma_tup[1])
+                    #if stats_tup[1] != 0:
+                    #    if karma_tup[1] <= 0:
+                    #        k = 1
+                    #    else:
+                    #        k = karma_tup[1] 
+                    #    sorted_quality[stats_tup[0]] = (k/float(stats_tup[1])*100)
+                    #    break
         sorted_quality = sorted(sorted_quality.iteritems(), key=operator.itemgetter(1))
         sorted_quality.reverse() 
         for tup in sorted_quality:
