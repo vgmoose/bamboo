@@ -114,11 +114,10 @@ def setPoints(subject, pts):
 # get the score for the given subject
 def getPoints(subject):
     subject = subject.lower()
-    try:
-        karmaScores[subject]
-    except KeyError:
+    if subject in karmaScores:
+        return karmaScores[subject]
+    else:
         return
-    return karmaScores[subject]
 
 def toggleScrambles(subject):
     if subject in scrambleTracker:
@@ -139,6 +138,13 @@ def setStats(subject):
     with open(args.statsfile, 'wb') as file:
         pickle.dump(stats, file)
 
+def getStats(subject):
+    subject = subject.lower()
+    if subject in stats:
+        return stats[subject]
+    else:
+        return
+
 def setGenerosity(subject, netgain):
     subject = subject.lower()
     if subject in generous:
@@ -148,13 +154,12 @@ def setGenerosity(subject, netgain):
     with open(args.generousfile, 'wb') as file:
         pickle.dump(generous, file)
 
-def getStats(subject):
+def getGenerosity(subject):
     subject = subject.lower()
-    try: 
-        stats[subject]
-    except KeyError:
+    if subject in generous:
+        return generous[subject]
+    else:
         return
-    return stats[subject]
 
 def getQuality(subject, stats, karma):
     if stats != 0:
@@ -190,7 +195,7 @@ def computeResponse(sender, message, channel):
         setStats(sender)
     
     # if the ++/-- operator is present at the end of the line
-    if message[-2:] in ["++", "--", "~~", "**"]:
+    if message[-2:] in ["++", "--", "~~", "``", "**", "$$"]:
         symbol = message[-2:]
         message = message[:-2].rstrip().lstrip()
 
@@ -201,14 +206,28 @@ def computeResponse(sender, message, channel):
         subject = message.split()
         if subject:
             subject = subject[-1]
-            # Total hack solution to nullstring bug for the time being...
+        # Total hack solution to nullstring bug for the time being...
         else:
             subject = "" 
-            
+
+        if symbol == "``":
+            usrstats = getStats(subject)
+            if usrstats:
+                return "%s has sent %i messages" % (subject, usrstats)
+            else:
+                return "%s is not a recorded user" % subject 
+
         if symbol == "**":
             usrstats = getStats(subject)
             usrkarma = getPoints(subject)
             return "%s has %.2f%% quality posts"  % (subject, getQuality(subject, usrstats, usrkarma))
+
+        if symbol == "$$":
+            usrgener = getGenerosity(subject)
+            if usrgener:
+                return "%s has given %i net karma" % (subject, usrgener)
+            else:
+                return "%s has never used karma" % subject            
 
         # can't give yourself karma
         if subject == sender and symbol != "~~":
@@ -228,15 +247,12 @@ def computeResponse(sender, message, channel):
         return computeResponse(sender, message[2:]+message[:2], channel)
 
     # display a rank for the given username
-    #elif message[:5] == "rank ":
     elif func == "rank":
-        #subject = message[4:].lstrip()
         if len(splitmsg) == 2:
             subject = splitmsg[1].lstrip()
             return computeResponse(sender, subject+"~~", channel)
 
     # report the top 5 users and phrases
-    #elif message[:5] == "ranks" or message[:6] == "scores":
     elif func == "ranks" or func == "scores":
         top_users = "Top 5 Users:"
         top_phrases = "Top 5 Phrases:"
@@ -254,15 +270,10 @@ def computeResponse(sender, message, channel):
 
         return [top_users[:-1], top_phrases[:-1]]
 
-    #elif message[:5] == "stats":
     elif func == "stats":
         if len(splitmsg) == 2:
             subject = splitmsg[1].lstrip()
-            volume = getStats(subject)
-            if volume:
-                return "%s has sent %i messages" % (subject, volume)
-            else:
-                return "%s is not a recorded user" % subject 
+            return computeResponse(sender, subject+"``", channel)
         top_users = "Top 5 Users by Volume:"
         count_users = 0
         sorted_stats = sorted(stats.iteritems(), key=operator.itemgetter(1))
@@ -273,8 +284,10 @@ def computeResponse(sender, message, channel):
                 count_users += 1
         return top_users[:-1]
 
-    #elif message[:10] == "generosity":
     elif func == "generosity":
+        if len(splitmsg) == 2:
+            subject = splitmsg[1].lstrip()
+            return computeResponse(sender, subject+"$$", channel)
         most_generous = "Top 5 Most Generous Users:"
         most_stingy = "Top 5 Stingiest Users:"
         count_gen = 0
@@ -292,7 +305,6 @@ def computeResponse(sender, message, channel):
                 count_sting += 1
         return [most_generous[:-1], most_stingy[:-1]]
 
-    #elif message[:7] == "quality":
     elif func == "quality":
         if len(splitmsg) == 2:
             subject = splitmsg[1].lstrip()
