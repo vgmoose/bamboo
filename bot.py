@@ -162,6 +162,8 @@ def getGenerosity(subject):
         return
 
 def getQuality(subject, stats, karma):
+    if stats is None or karma is None:
+        return None
     if stats != 0:
         if karma <= 0:
             k = 1
@@ -225,7 +227,11 @@ def computeResponse(sender, message, channel):
         if symbol == "**":
             usrstats = getStats(subject)
             usrkarma = getPoints(subject)
-            return "%s has %.2f%% quality posts"  % (subject, getQuality(subject, usrstats, usrkarma))
+            usrquality = getQuality(subject, usrstats, usrkarma)
+            if usrquality:
+                return "%s has %.2f%% quality posts"  % (subject, usrquality)
+            else:
+                return "%s has no stats or karma recorded" % subject
 
         if symbol == "$$":
             usrgener = getGenerosity(subject)
