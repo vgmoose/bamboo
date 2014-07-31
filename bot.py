@@ -28,6 +28,7 @@ import pickle
 import socket
 import string
 import sys
+import random
 
 parser = argparse.ArgumentParser(description="Bamboo argument parsing")
 parser.add_argument("-s", "--server", nargs='?', default="irc.freenode.net")
@@ -178,7 +179,7 @@ def scramble(tup):
     if subject not in scrambleTracker or scrambleTracker[subject]:
         return (subject, tup[1])
     else:
-        return ("_"+subject+"_", tup[1])
+        return (''.join(random.sample(subject,len(subject))), tup[1])
 
 # do not engage off-channel users
 def politelyDoNotEngage(sender):
