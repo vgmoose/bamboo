@@ -105,6 +105,10 @@ def setPoints(subject, pts):
 # get the score for the given subject
 def getPoints(subject):
     subject = subject.lower()
+    try:
+        karmaScores[subject]
+    except KeyError:
+        return
     return karmaScores[subject]
 
 # set stats
@@ -128,6 +132,10 @@ def setGenerosity(subject, netgain):
 
 def getStats(subject):
     subject = subject.lower()
+    try: 
+        stats[subject]
+    except KeyError:
+        return
     return stats[subject]
 
 def getQuality(subject, stats, karma):
@@ -150,6 +158,8 @@ def politelyDoNotEngage(sender):
 # returns the response given a sender, message, and channel
 def computeResponse(sender, message, channel):
     global args
+    splitmsg = message.split(' ')
+    func = splitmsg[0]
 
     if sender:
         setStats(sender)
@@ -193,12 +203,16 @@ def computeResponse(sender, message, channel):
         return computeResponse(sender, message[2:]+message[:2], channel)
 
     # display a rank for the given username
-    elif message[:5] == "rank ":
-        subject = message[4:].lstrip()
-        return computeResponse(False, subject+"~~", channel)
+    #elif message[:5] == "rank ":
+    elif func == "rank":
+        #subject = message[4:].lstrip()
+        if len(splitmsg) == 2:
+            subject = splitmsg[1].lstrip()
+            return computeResponse(sender, subject+"~~", channel)
 
     # report the top 5 users and phrases
-    elif message[:5] == "ranks" or message[:6] == "scores":
+    #elif message[:5] == "ranks" or message[:6] == "scores":
+    elif func == "ranks" or func == "scores":
         top_users = "Top 5 Users:"
         top_phrases = "Top 5 Phrases:"
         count_users = 0
@@ -215,7 +229,15 @@ def computeResponse(sender, message, channel):
 
         return [top_users[:-1], top_phrases[:-1]]
 
-    elif message[:5] == "stats":
+    #elif message[:5] == "stats":
+    elif func == "stats":
+        if len(splitmsg) == 2:
+            subject = splitmsg[1].lstrip()
+            volume = getStats(subject)
+            if volume:
+                return "%s has sent %i messages" % (subject, volume)
+            else:
+                return "%s is not a recorded user" % subject 
         top_users = "Top 5 Users by Volume:"
         count_users = 0
         sorted_stats = sorted(stats.iteritems(), key=operator.itemgetter(1))
@@ -226,7 +248,8 @@ def computeResponse(sender, message, channel):
                 count_users += 1
         return top_users[:-1]
 
-    elif message[:10] == "generosity":
+    #elif message[:10] == "generosity":
+    elif func == "generosity":
         most_generous = "Top 5 Most Generous Users:"
         most_stingy = "Top 5 Stingiest Users:"
         count_gen = 0
@@ -244,7 +267,11 @@ def computeResponse(sender, message, channel):
                 count_sting += 1
         return [most_generous[:-1], most_stingy[:-1]]
 
-    elif message[:7] == "quality":
+    #elif message[:7] == "quality":
+    elif func == "quality":
+        if len(splitmsg) == 2:
+            subject = splitmsg[1].lstrip()
+            return computeResponse(sender, subject+"**", channel)
         top_users = "Top 5 Users by Quality:"
         spam_users = "The Round Table of Spamalot:"
         count_users = 0
@@ -255,13 +282,7 @@ def computeResponse(sender, message, channel):
             for karma_tup in sorted_karma:
                 if stats_tup[0] == karma_tup[0] and karma_tup[0] in currentusers:
                     sorted_quality[stats_tup[0]] = getQuality(stats_tup[0], stats_tup[1], karma_tup[1])
-                    #if stats_tup[1] != 0:
-                    #    if karma_tup[1] <= 0:
-                    #        k = 1
-                    #    else:
-                    #        k = karma_tup[1] 
-                    #    sorted_quality[stats_tup[0]] = (k/float(stats_tup[1])*100)
-                    #    break
+        
         sorted_quality = sorted(sorted_quality.iteritems(), key=operator.itemgetter(1))
         sorted_quality.reverse() 
         for tup in sorted_quality:
