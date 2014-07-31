@@ -178,7 +178,7 @@ def scramble(tup):
     if subject not in scrambleTracker or scrambleTracker[subject]:
         return (subject, tup[1])
     else:
-        return ("_"+subject+"_", tup[1])
+        return (subject[:1] + "." + subject[1:], tup[1])
 
 # do not engage off-channel users
 def politelyDoNotEngage(sender):
