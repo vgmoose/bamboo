@@ -38,6 +38,7 @@ parser.add_argument("-r", "--realname", nargs='?', default="love me")
 parser.add_argument("-c", "--channel", nargs='?', default="#WestfordInterns")
 parser.add_argument("-k", "--karmafile", nargs='?', default=".karmascores")
 parser.add_argument("-a", "--statsfile", nargs='?', default=".stats")
+parser.add_argument("-z", "--scramblefile", nargs='?', default=".scrambles")
 parser.add_argument("-d", "--debug", action="store_true")
 parser.add_argument("-g", "--generousfile", nargs='?', default=".generous")
 args = parser.parse_args(sys.argv[1:])
@@ -66,6 +67,14 @@ try:
         generous = pickle.load(file)
 except:
     generous = {}
+
+#try to load scramble object
+try:
+    with open(args.scramblefile, 'rb') as file:
+        scrambleTracker = pickle.load(file)
+except:
+    scrambleTracker = {}
+
 
 # connect to the server
 s=socket.socket()
@@ -111,6 +120,15 @@ def getPoints(subject):
         return
     return karmaScores[subject]
 
+def toggleScrambles(subject):
+    if subject in scrambleTracker:
+        scrambleTracker[subject] = not scrambleTracker[subject]
+    else:
+        scrambleTracker[subject] = False
+
+    with open(args.scramblefile, 'wb') as file:
+        pickle.dump(scrambleTracker, file)
+
 # set stats
 def setStats(subject):
     subject = subject.lower()
@@ -149,6 +167,13 @@ def getQuality(subject, stats, karma):
         return quality
 
     return 0
+
+def scramble(tup):
+    subject = tup[0]
+    if subject not in scrambleTracker or scrambleTracker[subject]:
+        return (subject, tup[1])
+    else:
+        return ("_"+subject+"_", tup[1])
 
 # do not engage off-channel users
 def politelyDoNotEngage(sender):
@@ -221,10 +246,10 @@ def computeResponse(sender, message, channel):
         sorted_karma.reverse()
         for tup in sorted_karma:
             if tup[0] in currentusers and count_users < 5:
-                top_users += " %s=%i," % tup
+                top_users += " %s=%i," % scramble(tup)
                 count_users += 1
             if tup[0] not in currentusers and count_phrases < 5:
-                top_phrases += " \"%s\"=%i," % tup
+                top_phrases += " \"%s\"=%i," % scramble(tup)
                 count_phrases += 1
 
         return [top_users[:-1], top_phrases[:-1]]
@@ -244,7 +269,7 @@ def computeResponse(sender, message, channel):
         sorted_stats.reverse()
         for tup in sorted_stats:
             if tup[0] in currentusers and count_users < 5:
-                top_users += " %s=%i," % tup
+                top_users += " %s=%i," % scramble(tup)
                 count_users += 1
         return top_users[:-1]
 
@@ -258,12 +283,12 @@ def computeResponse(sender, message, channel):
         sorted_gen.reverse()
         for tup in sorted_gen:
             if tup[0] in currentusers and count_gen < 5:
-                most_generous += " %s=%i," % tup
+                most_generous += " %s=%i," % scramble(tup)
                 count_gen += 1
         sorted_gen.reverse()
         for tup in sorted_gen:
             if tup[0] in currentusers and count_sting < 5:
-                most_stingy += " %s=%i," % tup
+                most_stingy += " %s=%i," % scramble(tup)
                 count_sting += 1
         return [most_generous[:-1], most_stingy[:-1]]
 
@@ -287,13 +312,13 @@ def computeResponse(sender, message, channel):
         sorted_quality.reverse() 
         for tup in sorted_quality:
             if count_users < 5:
-                top_users += " %s=%.2f%%," % tup
+                top_users += " %s=%.2f%%," % scramble(tup)
                 count_users += 1 
         count_users = 0
         sorted_quality.reverse() 
         for tup in sorted_quality:
             if count_users < 5:
-                spam_users += " %s=%.2f%%," % tup
+                spam_users += " %s=%.2f%%," % scramble(tup)
                 count_users += 1
         return [top_users[:-1], spam_users[:-1]]
 
@@ -302,6 +327,10 @@ def computeResponse(sender, message, channel):
         if not shared_source:
             shared_source = True
             return "https://github.com/vgmoose/bamboo/"
+
+    elif message[:len(args.nick)+10] == args.nick+": scramble":
+        toggleScrambles(sender)
+        return sender + " is now known as %s%s" % scramble((sender,""))
 
     elif message[:len(args.nick)+7] == args.nick+": /nick":
         args.nick = message[len(args.nick)+7:].lstrip().rstrip()

@@ -70,3 +70,10 @@ Generosity tracks which users are giving the most karma using the ++ commands. E
 Checking generosity
 - generosity
 
+#### Scrambling username
+
+Sometimes it is annoying to be mentioned in the above "leaderboard" style commands. The following command is a workaround that will "scramble" one's username so that they won't be notified in IRC.
+
+- bamboo: scramble
+
+
