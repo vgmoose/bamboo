@@ -185,6 +185,10 @@ def politelyDoNotEngage(sender):
     response = "[AUTO REPLY] I am not a human, apologies for any confusion."
     sendTo(sender, response)
 
+# depends on git pull in shell while loop
+def updateBamboo():
+    exit(0)
+
 # returns the response given a sender, message, and channel
 def computeResponse(sender, message, channel):
     global args
@@ -254,95 +258,103 @@ def computeResponse(sender, message, channel):
 
     # report the top 5 users and phrases
     elif func == "ranks" or func == "scores":
-        top_users = "Top 5 Users:"
-        top_phrases = "Top 5 Phrases:"
-        count_users = 0
-        count_phrases = 0
-        sorted_karma = sorted(karmaScores.iteritems(), key=operator.itemgetter(1))
-        sorted_karma.reverse()
-        for tup in sorted_karma:
-            if tup[0] in currentusers and count_users < 5:
-                top_users += " %s=%i," % scramble(tup)
-                count_users += 1
-            if tup[0] not in currentusers and count_phrases < 5:
-                top_phrases += " \"%s\"=%i," % scramble(tup)
-                count_phrases += 1
+        if len(splitmsg) == 1:
+            top_users = "Top 5 Users:"
+            top_phrases = "Top 5 Phrases:"
+            count_users = 0
+            count_phrases = 0
+            sorted_karma = sorted(karmaScores.iteritems(), key=operator.itemgetter(1))
+            sorted_karma.reverse()
+            for tup in sorted_karma:
+                if tup[0] in currentusers and count_users < 5:
+                    top_users += " %s=%i," % scramble(tup)
+                    count_users += 1
+                if tup[0] not in currentusers and count_phrases < 5:
+                    top_phrases += " \"%s\"=%i," % scramble(tup)
+                    count_phrases += 1
 
-        return [top_users[:-1], top_phrases[:-1]]
+            return [top_users[:-1], top_phrases[:-1]]
 
     elif func == "stats":
         if len(splitmsg) == 2:
             subject = splitmsg[1].lstrip()
             return computeResponse(sender, subject+"``", channel)
-        top_users = "Top 5 Users by Volume:"
-        count_users = 0
-        sorted_stats = sorted(stats.iteritems(), key=operator.itemgetter(1))
-        sorted_stats.reverse()
-        for tup in sorted_stats:
-            if tup[0] in currentusers and count_users < 5:
-                top_users += " %s=%i," % scramble(tup)
-                count_users += 1
-        return top_users[:-1]
+        elif len(splitmsg) == 1:
+            top_users = "Top 5 Users by Volume:"
+            count_users = 0
+            sorted_stats = sorted(stats.iteritems(), key=operator.itemgetter(1))
+            sorted_stats.reverse()
+            for tup in sorted_stats:
+                if tup[0] in currentusers and count_users < 5:
+                    top_users += " %s=%i," % scramble(tup)
+                    count_users += 1
+            return top_users[:-1]
 
     elif func == "generosity":
         if len(splitmsg) == 2:
             subject = splitmsg[1].lstrip()
             return computeResponse(sender, subject+"$$", channel)
-        most_generous = "Top 5 Most Generous Users:"
-        most_stingy = "Top 5 Stingiest Users:"
-        count_gen = 0
-        count_sting = 0
-        sorted_gen = sorted(generous.iteritems(), key=operator.itemgetter(1))
-        sorted_gen.reverse()
-        for tup in sorted_gen:
-            if tup[0] in currentusers and count_gen < 5:
-                most_generous += " %s=%i," % scramble(tup)
-                count_gen += 1
-        sorted_gen.reverse()
-        for tup in sorted_gen:
-            if tup[0] in currentusers and count_sting < 5:
-                most_stingy += " %s=%i," % scramble(tup)
-                count_sting += 1
-        return [most_generous[:-1], most_stingy[:-1]]
+        elif len(splitmsg) == 1:
+            most_generous = "Top 5 Most Generous Users:"
+            most_stingy = "Top 5 Stingiest Users:"
+            count_gen = 0
+            count_sting = 0
+            sorted_gen = sorted(generous.iteritems(), key=operator.itemgetter(1))
+            sorted_gen.reverse()
+            for tup in sorted_gen:
+                if tup[0] in currentusers and count_gen < 5:
+                    most_generous += " %s=%i," % scramble(tup)
+                    count_gen += 1
+            sorted_gen.reverse()
+            for tup in sorted_gen:
+                if tup[0] in currentusers and count_sting < 5:
+                    most_stingy += " %s=%i," % scramble(tup)
+                    count_sting += 1
+            return [most_generous[:-1], most_stingy[:-1]]
 
     elif func == "quality":
         if len(splitmsg) == 2:
             subject = splitmsg[1].lstrip()
             return computeResponse(sender, subject+"**", channel)
-        top_users = "Top 5 Users by Quality:"
-        spam_users = "The Round Table of Spamalot:"
-        count_users = 0
-        sorted_quality = {}
-        sorted_stats = sorted(stats.iteritems(), key=operator.itemgetter(0))
-        sorted_karma = sorted(karmaScores.iteritems(), key=operator.itemgetter(0))
-        for stats_tup in sorted_stats:
-            for karma_tup in sorted_karma:
-                if stats_tup[0] == karma_tup[0] and karma_tup[0] in currentusers:
-                    sorted_quality[stats_tup[0]] = getQuality(stats_tup[0], stats_tup[1], karma_tup[1])
+        if len(splitmsg) == 1:
+            top_users = "Top 5 Users by Quality:"
+            spam_users = "The Round Table of Spamalot:"
+            count_users = 0
+            sorted_quality = {}
+            sorted_stats = sorted(stats.iteritems(), key=operator.itemgetter(0))
+            sorted_karma = sorted(karmaScores.iteritems(), key=operator.itemgetter(0))
+            for stats_tup in sorted_stats:
+                for karma_tup in sorted_karma:
+                    if stats_tup[0] == karma_tup[0] and karma_tup[0] in currentusers:
+                        sorted_quality[stats_tup[0]] = \
+                        getQuality(stats_tup[0], stats_tup[1], karma_tup[1])
         
-        sorted_quality = sorted(sorted_quality.iteritems(), key=operator.itemgetter(1))
-        sorted_quality.reverse() 
-        for tup in sorted_quality:
-            if count_users < 5:
-                top_users += " %s=%.2f%%," % scramble(tup)
-                count_users += 1 
-        count_users = 0
-        sorted_quality.reverse() 
-        for tup in sorted_quality:
-            if count_users < 5:
-                spam_users += " %s=%.2f%%," % scramble(tup)
-                count_users += 1
-        return [top_users[:-1], spam_users[:-1]]
-
+            sorted_quality = sorted(sorted_quality.iteritems(), key=operator.itemgetter(1))
+            sorted_quality.reverse() 
+            for tup in sorted_quality:
+                if count_users < 5:
+                    top_users += " %s=%.2f%%," % scramble(tup)
+                    count_users += 1 
+            count_users = 0
+            sorted_quality.reverse() 
+            for tup in sorted_quality:
+                if count_users < 5:
+                    spam_users += " %s=%.2f%%," % scramble(tup)
+                    count_users += 1
+            return [top_users[:-1], spam_users[:-1]]
+        
     elif message == "sharesource":
         global shared_source
         if not shared_source:
             shared_source = True
-            return "https://github.com/vgmoose/bamboo/"
+        return "https://github.com/vgmoose/bamboo/"
 
     elif message[:len(args.nick)+10] == args.nick+": scramble":
         toggleScrambles(sender)
         return sender + " is now known as %s%s" % scramble((sender,""))
+
+    elif message[:len(args.nick)+8] == args.nick+": update":
+        updateBamboo()
 
     elif message[:len(args.nick)+7] == args.nick+": /nick":
         args.nick = message[len(args.nick)+7:].lstrip().rstrip()
