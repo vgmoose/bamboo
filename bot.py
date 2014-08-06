@@ -191,9 +191,9 @@ def politelyDoNotEngage(sender):
 
 def getItTogether(message):
     username = message[1]
-    sendTo(args.channel, "Get it together, " + username)
-    sendTo(args.channel, "Get it together")
-    sendTo(args.channel, "Get it together")
+    sendTo(args.channel, "get it together, " + username)
+    sendTo(args.channel, "get it together")
+    sendTo(args.channel, "get it together")
 
 # depends on git pull in shell while loop
 def updateBamboo():
