@@ -434,7 +434,7 @@ while 1:
                 arglist = splitmsg[1:]
                 if arglist == []:
                     politelyDoNotEngage(sender)
-                print args.channel
+                    continue
                 if func == "git":
                     getItTogether(splitmsg)
                 elif func == "say":
