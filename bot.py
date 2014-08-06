@@ -195,6 +195,10 @@ def getItTogether(message):
     sendTo(args.channel, "get it together")
     sendTo(args.channel, "get it together")
 
+def anonSay(message):
+    print message
+    sendTo(args.channel, message)
+
 # depends on git pull in shell while loop
 def updateBamboo():
     exit(0)
@@ -425,10 +429,16 @@ while 1:
             
             # if not on the channel, tell the user you're a bot
             if channel != args.channel:
-                if message.split(' ')[0] == "git":
-                    getItTogether(message.split(' '))
-                    continue
-                politelyDoNotEngage(sender)
+                splitmsg =message.split(' ')
+                func = splitmsg[0]
+                arglist = splitmsg[1:]
+                print args.channel
+                if func == "git":
+                    getItTogether(splitmsg)
+                elif func == "say":
+                    anonSay(' '.join(arglist))
+                else:
+                    politelyDoNotEngage(sender)
                 continue
             
             # decide what type of response to have based on the message
