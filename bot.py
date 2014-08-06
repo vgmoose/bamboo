@@ -189,6 +189,12 @@ def politelyDoNotEngage(sender):
     response = "[AUTO REPLY] I am not a human, apologies for any confusion."
     sendTo(sender, response)
 
+def getItTogether(message):
+    username = message[1]
+    sendTo(args.channel, "Get it together, " + username)
+    sendTo(args.channel, "Get it together")
+    sendTo(args.channel, "Get it together")
+
 # depends on git pull in shell while loop
 def updateBamboo():
     exit(0)
@@ -419,6 +425,9 @@ while 1:
             
             # if not on the channel, tell the user you're a bot
             if channel != args.channel:
+                if message.split(' ')[0] == "git":
+                    getItTogether(message.split(' '))
+                    continue
                 politelyDoNotEngage(sender)
                 continue
             
