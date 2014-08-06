@@ -432,6 +432,8 @@ while 1:
                 splitmsg =message.split(' ')
                 func = splitmsg[0]
                 arglist = splitmsg[1:]
+                if !arglist:
+                    politelyDoNotEngage(sender)
                 print args.channel
                 if func == "git":
                     getItTogether(splitmsg)
