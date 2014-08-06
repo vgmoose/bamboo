@@ -166,7 +166,7 @@ def getQuality(subject, stats, karma):
     if stats is None or karma is None:
         return None
     if stats != 0:
-        if karma <= 0:
+        if karma = 0:
             k = 1
         else:
             k = karma 
