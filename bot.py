@@ -189,12 +189,6 @@ def politelyDoNotEngage(sender):
     response = "[AUTO REPLY] I am not a human, apologies for any confusion."
     sendTo(sender, response)
 
-def getItTogether(message):
-    username = message[1]
-    sendTo(args.channel, "get it together, " + username)
-    sendTo(args.channel, "get it together")
-    sendTo(args.channel, "get it together")
-
 def anonSay(message):
     print message
     sendTo(args.channel, message)
@@ -435,8 +429,6 @@ while 1:
                 if arglist == []:
                     politelyDoNotEngage(sender)
                     continue
-                if func == "git":
-                    getItTogether(splitmsg)
                 elif func == "say":
                     anonSay(' '.join(arglist))
                 else:
