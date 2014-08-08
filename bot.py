@@ -371,6 +371,7 @@ def computeResponse(sender, message, channel):
     elif message[:len(args.nick)+7] == args.nick+": /nick":
         args.nick = message[len(args.nick)+7:].lstrip().rstrip()
         s.send(bytes("NICK " + args.nick + "\r\n"))
+        return "Be smart with nicks: do not give bamboo the nick of any current or former associates."
 
 
 while 1:
