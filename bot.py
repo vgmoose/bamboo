@@ -29,6 +29,7 @@ import socket
 import string
 import sys
 import random
+import ssl
 
 parser = argparse.ArgumentParser(description="Bamboo argument parsing")
 parser.add_argument("-s", "--server", nargs='?', default="irc.freenode.net")
@@ -42,6 +43,7 @@ parser.add_argument("-a", "--statsfile", nargs='?', default=".stats")
 parser.add_argument("-z", "--scramblefile", nargs='?', default=".scrambles")
 parser.add_argument("-d", "--debug", action="store_true")
 parser.add_argument("-g", "--generousfile", nargs='?', default=".generous")
+parser.add_argument("-t", "--tls", action="store_true")
 args = parser.parse_args(sys.argv[1:])
 
 readbuffer = ""
@@ -78,7 +80,10 @@ except:
 
 
 # connect to the server
-s=socket.socket()
+s = socket.socket()
+if args.tls:
+    s = ssl.wrap_socket(s)
+
 s.connect((args.server, args.port))
 
 # join the channel and set nick
