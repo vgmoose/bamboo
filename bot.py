@@ -50,34 +50,18 @@ readbuffer = ""
 currentusers = []
 shared_source = False
 
-# try to load the karma object
-try:
-    with open(args.karmafile, 'rb') as file:
-        karmaScores = pickle.load(file)
-except:
-    karmaScores = {}
+def loadData(object):
+    try:
+        with open(object, 'rb') as file:
+            return pickle.load(file)
+    except:
+        return {}
 
-#try to load stats object
-try:
-    with open(args.statsfile, 'rb') as file:
-        stats = pickle.load(file)
-except:
-    stats = {}
-
-#try to load generous object
-try:
-    with open(args.generousfile, 'rb') as file:
-        generous = pickle.load(file)
-except:
-    generous = {}
-
-#try to load scramble object
-try:
-    with open(args.scramblefile, 'rb') as file:
-        scrambleTracker = pickle.load(file)
-except:
-    scrambleTracker = {}
-
+# load data from dumped dotfiles
+karmaScores = loadData(args.karmafile)
+stats = loadData(args.statsfile)
+generous = loadData(args.generousfile)
+scrambleTracker = loadData(args.scramblefile)
 
 # connect to the server
 s = socket.socket()
