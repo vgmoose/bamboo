@@ -1,7 +1,7 @@
 import pickle, os
 
-# get all files in pwd (which could potentially contain dumped data
-dotfiles = os.listdir('.')
+# get all dotfiles (which could potentially contain dumped data
+dotfiles = [x for x in os.listdir('.') if x.startswith('.')]
 
 objects = []
 filenames = []
@@ -15,7 +15,7 @@ for filename in dotfiles:
     except:
         pass
 
-print objects
+#print objects
 
 # prompt for information
 oldname = unicode(raw_input("Old username: ").lower())
