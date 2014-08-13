@@ -30,6 +30,7 @@ import string
 import sys
 import random
 import ssl
+from pattern.web import *
 
 parser = argparse.ArgumentParser(description="Bamboo argument parsing")
 parser.add_argument("-s", "--server", nargs='?', default="irc.freenode.net")
@@ -185,6 +186,13 @@ def anonSay(message):
 # depends on git pull in shell while loop
 def updateBamboo():
     exit(0)
+
+def xkcd(searchTerm):
+    if searchTerm != "":
+        g = Google()
+        for result in g.search("xkcd"+searchTerm):
+            if "http://xkcd.com/" in result.url:
+                return result.url
 
 # returns the response given a sender, message, and channel
 def computeResponse(sender, message, channel):
@@ -343,6 +351,9 @@ def computeResponse(sender, message, channel):
                     spam_users += " %s=%.2f%%," % scramble(tup)
                     count_users += 1
             return [top_users[:-1], spam_users[:-1]]
+
+    elif func == ".xkcd":
+        return xkcd(message[5:])
         
     elif message == "sharesource":
         global shared_source
