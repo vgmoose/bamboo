@@ -222,7 +222,10 @@ def computeResponse(sender, message, channel):
         for msg in messages:
             if msg != []:
                 for m in msg:
-                    output.append(computeResponse(sender, m.strip(), channel))
+                    mstr = m.strip()
+                    print mstr
+                    if mstr != '--' and mstr != '++':
+                        output.append(computeResponse(sender, mstr, channel))
         return output
 
     # if the ++/-- operator is present at the end of the line
