@@ -31,6 +31,7 @@ import sys
 import random
 import ssl
 from pattern.web import *
+import re
 
 parser = argparse.ArgumentParser(description="Bamboo argument parsing")
 parser.add_argument("-s", "--server", nargs='?', default="irc.freenode.net")
@@ -258,6 +259,14 @@ def computeResponse(sender, message, channel):
     # if the ++/-- operator is at the start, reprocess as if it were at the end
     elif message[:2] in ["++", "--"]:
         return computeResponse(sender, message[2:]+message[:2], channel)
+
+    # search for ++/-- operator inline, inc/dec that specific word
+    elif re.findall("\s\+\+[\S]*", message) != []:
+        msg = re.findall("\s\+\+[\S]*", message)[0][1:]
+        return computeResponse(sender, msg, channel)
+    elif re.findall("[\S]*\+\+\s", message) != []:
+        msg = re.findall("[\S]*\+\+\s", message)[0][:-1]
+        return computeResponse(sender, msg, channel)
 
     # display a rank for the given username
     elif func == "rank":
