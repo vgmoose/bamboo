@@ -194,6 +194,13 @@ def xkcd(searchTerm):
             if "http://xkcd.com/" in result.url:
                 return result.url
 
+def youtube(searchTerm):
+    if searchTerm != "":
+        g = Google()
+        for result in g.search("youtube"+searchTerm):
+            if "http://www.youtube.com/watch" in result.url:
+                return result.title + " " + result.url
+
 # returns the response given a sender, message, and channel
 def computeResponse(sender, message, channel):
     global args
@@ -354,6 +361,9 @@ def computeResponse(sender, message, channel):
 
     elif func == ".xkcd":
         return xkcd(message[5:])
+
+    elif func == ".yt":
+        return youtube(message[3:])
         
     elif message == "sharesource":
         global shared_source
