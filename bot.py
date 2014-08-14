@@ -203,7 +203,28 @@ def computeResponse(sender, message, channel):
 
     if sender:
         setStats(sender)
-    
+
+    output = []
+    messages = []
+
+    # search for ++/-- operator inline, inc/dec that specific word
+    # this function is pretty messy, if you can figure out how to clean it up feel free
+    messages.append(re.findall("\s\+\+[\S]*", message))
+    messages.append(re.findall("[\S]*\+\+\s", message))
+    messages.append(re.findall("\s\-\-[\S]*", message))
+    messages.append(re.findall("[\S]*\-\-\s", message))
+
+    if messages != [[], [], [], []]:
+        messages.append(re.findall("^\+\+[\S]*", message))
+        messages.append(re.findall("^\-\-[\S]*", message))
+        messages.append(re.findall("[\S]*\+\+$", message))
+        messages.append(re.findall("[\S]*\-\-$", message))
+        for msg in messages:
+            if msg != []:
+                for m in msg:
+                    output.append(computeResponse(sender, m.strip(), channel))
+        return output
+
     # if the ++/-- operator is present at the end of the line
     if message[-2:] in ["++", "--", "~~", "``", "**", "$$"]:
         symbol = message[-2:]
@@ -260,13 +281,6 @@ def computeResponse(sender, message, channel):
     elif message[:2] in ["++", "--"]:
         return computeResponse(sender, message[2:]+message[:2], channel)
 
-    # search for ++/-- operator inline, inc/dec that specific word
-    elif re.findall("\s\+\+[\S]*", message) != []:
-        msg = re.findall("\s\+\+[\S]*", message)[0][1:]
-        return computeResponse(sender, msg, channel)
-    elif re.findall("[\S]*\+\+\s", message) != []:
-        msg = re.findall("[\S]*\+\+\s", message)[0][:-1]
-        return computeResponse(sender, msg, channel)
 
     # display a rank for the given username
     elif func == "rank":
