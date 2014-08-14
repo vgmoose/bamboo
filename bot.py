@@ -31,6 +31,7 @@ import sys
 import random
 import ssl
 from pattern.web import *
+import re
 
 parser = argparse.ArgumentParser(description="Bamboo argument parsing")
 parser.add_argument("-s", "--server", nargs='?', default="irc.freenode.net")
@@ -209,7 +210,31 @@ def computeResponse(sender, message, channel):
 
     if sender:
         setStats(sender)
-    
+
+    output = []
+    messages = []
+
+    # search for ++/-- operator inline, inc/dec that specific word
+    # this function is pretty messy, if you can figure out how to clean it up feel free
+    messages.append(re.findall("\s\+\+[\S]*", message))
+    messages.append(re.findall("[\S]*\+\+\s", message))
+    messages.append(re.findall("\s\-\-[\S]*", message))
+    messages.append(re.findall("[\S]*\-\-\s", message))
+
+    if messages != [[], [], [], []]:
+        messages.append(re.findall("^\+\+[\S]*", message))
+        messages.append(re.findall("^\-\-[\S]*", message))
+        messages.append(re.findall("[\S]*\+\+$", message))
+        messages.append(re.findall("[\S]*\-\-$", message))
+        for msg in messages:
+            if msg != []:
+                for m in msg:
+                    mstr = m.strip()
+                    print mstr
+                    if mstr != '--' and mstr != '++':
+                        output.append(computeResponse(sender, mstr, channel))
+        return output
+
     # if the ++/-- operator is present at the end of the line
     if message[-2:] in ["++", "--", "~~", "``", "**", "$$"]:
         symbol = message[-2:]
@@ -265,6 +290,7 @@ def computeResponse(sender, message, channel):
     # if the ++/-- operator is at the start, reprocess as if it were at the end
     elif message[:2] in ["++", "--"]:
         return computeResponse(sender, message[2:]+message[:2], channel)
+
 
     # display a rank for the given username
     elif func == "rank":
