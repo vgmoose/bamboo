@@ -43,6 +43,8 @@ parser.add_argument("-c", "--channel", nargs='?', default="#WestfordInterns")
 parser.add_argument("-k", "--karmafile", nargs='?', default=".karmascores")
 parser.add_argument("-a", "--statsfile", nargs='?', default=".stats")
 parser.add_argument("-z", "--scramblefile", nargs='?', default=".scrambles")
+parser.add_argument("-q", "--quotefile", nargs='?', default=".quotes")
+parser.add_argument("-u", "--userfile", nargs='?', default=".users")
 parser.add_argument("-d", "--debug", action="store_true")
 parser.add_argument("-g", "--generousfile", nargs='?', default=".generous")
 parser.add_argument("-t", "--tls", action="store_true")
@@ -50,6 +52,7 @@ args = parser.parse_args(sys.argv[1:])
 
 readbuffer = ""
 currentusers = []
+quotes = []
 shared_source = False
 
 def loadData(object):
@@ -64,6 +67,20 @@ karmaScores = loadData(args.karmafile)
 stats = loadData(args.statsfile)
 generous = loadData(args.generousfile)
 scrambleTracker = loadData(args.scramblefile)
+
+try:
+    with open(args.quotefile, 'rb') as f:
+        for line in f:
+            quotes.append(line)
+except:
+    quotes = []
+
+try: 
+    with open(args.userfile, 'rb') as f:
+        for line in f:
+            currentusers.append(line[:-1])
+except:
+    currentusers = []
 
 # connect to the server
 s = socket.socket()
@@ -180,9 +197,30 @@ def politelyDoNotEngage(sender):
     response = "[AUTO REPLY] I am not a human, apologies for any confusion."
     sendTo(sender, response)
 
+def helpMessage(sender):
+    response = "README can be found here: https://github.com/vgmoose/bamboo"
+    sendTo(sender, response)
+
+def quoteMessage(sender, message):
+
+    if message == "" or message.split(' ') == []:
+        return
+
+    message = message[1:]
+    quotes.append(message)
+
+    with open(args.quotefile, 'a') as f:
+        f.write(quotes[len(quotes)-1] + '\n')
+
+    response = "Quote #" + str(len(quotes)) + " added by " + sender
+    sendTo(args.channel, response)
+
 def anonSay(message):
     print message
     sendTo(args.channel, message)
+
+def anonDo(message):
+    s.send('PRIVMSG ' + args.channel + ' :\x01ACTION ' + message + '\x01\n')
 
 # depends on git pull in shell while loop
 def updateBamboo():
@@ -201,6 +239,14 @@ def youtube(searchTerm):
         for result in g.search("youtube"+searchTerm):
             if "http://www.youtube.com/watch" in result.url:
                 return result.title + " " + result.url
+
+def specificQuote(num):
+    n = int(num) - 1
+    if len(quotes) > n:
+        return quotes[n]
+
+def randomQuote():
+    return quotes[random.randint(0, len(quotes)-1)]
 
 # returns the response given a sender, message, and channel
 def computeResponse(sender, message, channel):
@@ -275,7 +321,7 @@ def computeResponse(sender, message, channel):
                 return "%s has never used karma" % subject            
 
         # can't give yourself karma
-        if subject == sender and symbol != "~~":
+        if subject.lower() == sender.lower() and symbol != "~~":
             return
         
         # if it's a user, give them karma, else give points to the phrase
@@ -408,6 +454,14 @@ def computeResponse(sender, message, channel):
         args.nick = message[len(args.nick)+7:].lstrip().rstrip()
         s.send(bytes("NICK " + args.nick + "\r\n"))
 
+    elif func == ".quote":
+        return quoteMessage(sender, message[6:])
+
+    elif func == ".getquote":
+        spltmsg = message.split(' ')
+        if len(spltmsg) > 1:
+            return specificQuote(spltmsg[1])
+        return randomQuote()
 
 while 1:
     # read in lines from the socket
@@ -429,16 +483,30 @@ while 1:
     
         # 353 = initial list of users in channel
         elif line[1] == "353":
-            currentusers = [args.nick]
+            if not args.nick in currentusers:
+                currentusers.append(args.nick)
             newusers = line[6:]
             for u in newusers:
                 u = u.lstrip("@").lstrip(":").lower()
-                currentusers.append(u)
+                if u[0] == "+":
+                    u = u[1:]
+                if not u in currentusers:
+                    currentusers.append(u)
+                    with open(args.userfile, 'a') as f:
+                        f.write(u + '\n')
         
+
+
         # update list of users when a nick is changed
         elif line[1] == "NICK":
             if not line[2] in currentusers:
-                currentusers.append(line[2].lstrip("@").lstrip(":").lower())
+                u = line[2].lstrip("@").lstrip(":").lower()
+                if u[0] == "+":
+                    u = u[1:]
+                if not u in currentusers:
+                    currentusers.append(u)
+                    with open(args.userfile, 'a') as f:
+                        f.write(u + '\n')
                
         elif line[1] == "433":
             args.nick = line[2]
@@ -447,7 +515,11 @@ while 1:
         elif line[1] == "JOIN":
             sender = parseSender(line)
             if not sender in currentusers:
-                currentusers.append(parseSender(line).lstrip("@").lstrip(":").lower())
+                u = parseSender(line).lstrip("@").lstrip(":").lower()
+                if not u in currentusers:
+                    currentusers.append(u)
+                    with open(args.userfile, 'a') as f:
+                        f.write(u + '\n')
         
         # this if statement responds to received messages
         elif line[1] == "PRIVMSG":
@@ -462,14 +534,27 @@ while 1:
                 splitmsg =message.split(' ')
                 func = splitmsg[0]
                 arglist = splitmsg[1:]
-                if arglist == []:
-                    politelyDoNotEngage(sender)
-                    continue
-                elif func == "say":
+ 
+
+                if func == "update":
+                    updateBamboo()
+
+                elif func == "say" and arglist != []:
                     anonSay(' '.join(arglist))
+
+                elif func == "action" and modflag and arglist != []:
+                    anonDo(' '.join(arglist))
+
+                elif func == "help":
+                    helpMessage(sender)
+
+                elif func == "quote" and arglist !=[]:
+                    quoteMessage(sender, ' '.join(arglist))
+
                 else:
                     politelyDoNotEngage(sender)
                 continue
+
             
             # decide what type of response to have based on the message
             response = computeResponse(sender, message, channel)

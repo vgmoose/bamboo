@@ -40,6 +40,15 @@ Incrementing Points (Phrase)
 
 *result: "any arbitrary words" will get +1 point*
 
+Incrementing Karma/Points (Inline)
+- any++ arbitrary++ [user]++
+
+*result: "any" will get +1 point*
+
+*result: "arbitrary" will get +1 point*
+
+*result: [user] will get +1 karma*
+
 Checking karma/points rank
 - rank [user]
 - [user]~~
@@ -53,8 +62,9 @@ Stats are kept track of for each user that sends messages to the channel. That i
 
 Checking stats
 - stats
+- stats [user]
 
-*result: information about the top 5 speakers in the channel*
+*result: information about the top 5 speakers in the channel, or information on specific user*
 
 #### Quality
 
@@ -62,6 +72,7 @@ Quality is calculated by dividing the number of times a user speaks by their ran
 
 Checking quality
 - quality
+- quality [user]
 
 #### Generosity
 
@@ -69,11 +80,35 @@ Generosity tracks which users are giving the most karma using the ++ commands. E
 
 Checking generosity
 - generosity
+- generosity [user]
 
 #### Scrambling username
 
 Sometimes it is annoying to be mentioned in the above "leaderboard" style commands. The following command is a workaround that will "scramble" one's username so that they won't be notified in IRC.
 
 - bamboo: scramble
+
+#### Searching
+
+Chipbot is able to search a couple different sites, including xkcd, and youtube. It will report
+the top result, including a link, to the channel. More can be added if requested.
+
+Search youtube
+- .yt [search terms]
+
+Search xkcd
+- .xkcd [search terms]
+
+#### Quoting
+
+Chipbot is able to remember single-line quotes.
+
+Add a quote:
+- .quote [quote]
+
+Post a quote:
+- .getquote (random)
+- .getquote [# of quote]
+
 
 
