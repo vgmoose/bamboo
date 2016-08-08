@@ -39,11 +39,12 @@ parser.add_argument("-p", "--port", nargs='?', default=6667, type=int)
 parser.add_argument("-n", "--nick", nargs='?', default="bamboo")
 parser.add_argument("-i", "--ident", nargs='?', default="bamboo")
 parser.add_argument("-r", "--realname", nargs='?', default="love me")
-parser.add_argument("-c", "--channel", nargs='?', default="#WestfordInterns")
+parser.add_argument("-c", "--channel", nargs='?', default="#DefaultChatroom")
 parser.add_argument("-k", "--karmafile", nargs='?', default=".karmascores")
 parser.add_argument("-a", "--statsfile", nargs='?', default=".stats")
 parser.add_argument("-z", "--scramblefile", nargs='?', default=".scrambles")
 parser.add_argument("-q", "--quotefile", nargs='?', default=".quotes")
+parser.add_argument("-l", "--msgfile", nargs='?', default=".leftmessages")
 parser.add_argument("-u", "--userfile", nargs='?', default=".users")
 parser.add_argument("-d", "--debug", action="store_true")
 parser.add_argument("-g", "--generousfile", nargs='?', default=".generous")
@@ -67,6 +68,7 @@ karmaScores = loadData(args.karmafile)
 stats = loadData(args.statsfile)
 generous = loadData(args.generousfile)
 scrambleTracker = loadData(args.scramblefile)
+left_messages = loadData(args.msgfile)
 
 try:
     with open(args.quotefile, 'rb') as f:
@@ -241,12 +243,31 @@ def youtube(searchTerm):
                 return result.title + " " + result.url
 
 def specificQuote(num):
-    n = int(num) - 1
-    if len(quotes) > n:
-        return quotes[n]
+    try: 
+        n = int(num) - 1
+        if len(quotes) > n:
+            return quotes[n]
+    except:
+        # look for the search contents
+        matchedquotes = []
+        for quote in quotes:
+            if num.lower() in quote.lower():
+                matchedquotes.append(quote)
+        if len(matchedquotes) > 0:
+            return matchedquotes[random.randint(0, len(matchedquotes)-1)]
 
 def randomQuote():
     return quotes[random.randint(0, len(quotes)-1)]
+
+def deliver_any_messages(target):
+    if target in left_messages:
+        msgs = left_messages[target]
+        for msg in msgs:
+            anonSay(target+": <"+msg[0]+"> "+msg[1])
+        del left_messages[target]
+
+        with open(args.msgfile, 'wb') as file:
+            pickle.dump(left_messages, file)
 
 # returns the response given a sender, message, and channel
 def computeResponse(sender, message, channel):
@@ -257,32 +278,8 @@ def computeResponse(sender, message, channel):
     if sender:
         setStats(sender)
 
-    output = []
-    messages = []
-
-    # search for ++/-- operator inline, inc/dec that specific word
-    # this function is pretty messy, if you can figure out how to clean it up feel free
-    messages.append(re.findall("\s\+\+[\S]*", message))
-    messages.append(re.findall("[\S]*\+\+\s", message))
-    messages.append(re.findall("\s\-\-[\S]*", message))
-    messages.append(re.findall("[\S]*\-\-\s", message))
-
-    if messages != [[], [], [], []]:
-        messages.append(re.findall("^\+\+[\S]*", message))
-        messages.append(re.findall("^\-\-[\S]*", message))
-        messages.append(re.findall("[\S]*\+\+$", message))
-        messages.append(re.findall("[\S]*\-\-$", message))
-        for msg in messages:
-            if msg != []:
-                for m in msg:
-                    mstr = m.strip()
-                    print mstr
-                    if mstr != '--' and mstr != '++':
-                        output.append(computeResponse(sender, mstr, channel))
-        return output
-
     # if the ++/-- operator is present at the end of the line
-    if message[-2:] in ["++", "--", "~~", "``", "**", "$$"]:
+    if message[-2:] in ["++", "--"] and message.upper().find("C++") < 0:
         symbol = message[-2:]
         message = message[:-2].rstrip().lstrip()
 
@@ -463,6 +460,19 @@ def computeResponse(sender, message, channel):
             return specificQuote(spltmsg[1])
         return randomQuote()
 
+    elif func == "tell":
+        splitmsg = message.split(' ')
+        if len(splitmsg) > 2:
+           splitmsg[1] = splitmsg[1].lower()
+           if splitmsg[1] not in left_messages:
+               left_messages[splitmsg[1]] = []
+           left_messages[splitmsg[1]].append((sender, " ".join(splitmsg[2:])))
+
+        with open(args.msgfile, 'wb') as file:
+            pickle.dump(left_messages, file)
+
+        return "will notify "+splitmsg[1]+" when they sign on"
+
 while 1:
     # read in lines from the socket
     readbuffer = readbuffer+s.recv(1024).decode("UTF-8")
@@ -494,32 +504,33 @@ while 1:
                     currentusers.append(u)
                     with open(args.userfile, 'a') as f:
                         f.write(u + '\n')
+            deliver_any_messages(args.nick)
         
 
 
         # update list of users when a nick is changed
         elif line[1] == "NICK":
+            u = line[2].lstrip("@").lstrip(":").lower()
             if not line[2] in currentusers:
-                u = line[2].lstrip("@").lstrip(":").lower()
                 if u[0] == "+":
                     u = u[1:]
                 if not u in currentusers:
                     currentusers.append(u)
                     with open(args.userfile, 'a') as f:
                         f.write(u + '\n')
+            deliver_any_messages(u)
                
         elif line[1] == "433":
             args.nick = line[2]
 
         # update list of users currently online when new one joins
         elif line[1] == "JOIN":
-            sender = parseSender(line)
-            if not sender in currentusers:
-                u = parseSender(line).lstrip("@").lstrip(":").lower()
-                if not u in currentusers:
-                    currentusers.append(u)
-                    with open(args.userfile, 'a') as f:
-                        f.write(u + '\n')
+            u = parseSender(line).lstrip("@").lstrip(":").lower()
+            if not u in currentusers:
+                currentusers.append(u)
+                with open(args.userfile, 'a') as f:
+                    f.write(u + '\n')
+            deliver_any_messages(u)
         
         # this if statement responds to received messages
         elif line[1] == "PRIVMSG":
@@ -549,7 +560,7 @@ while 1:
                     helpMessage(sender)
 
                 elif func == "quote" and arglist !=[]:
-                    quoteMessage(sender, ' '.join(arglist))
+                    quoteMessage(sender, ' '+' '.join(arglist))
 
                 else:
                     politelyDoNotEngage(sender)
