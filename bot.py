@@ -33,13 +33,18 @@ import ssl
 from pattern.web import *
 import re
 
+import urllib
+from lxml.html import fromstring
+from lxml.html import tostring
+from lxml.cssselect import CSSSelector
+
 parser = argparse.ArgumentParser(description="Bamboo argument parsing")
 parser.add_argument("-s", "--server", nargs='?', default="irc.freenode.net")
 parser.add_argument("-p", "--port", nargs='?', default=6667, type=int)
 parser.add_argument("-n", "--nick", nargs='?', default="bamboo")
 parser.add_argument("-i", "--ident", nargs='?', default="bamboo")
 parser.add_argument("-r", "--realname", nargs='?', default="love me")
-parser.add_argument("-c", "--channel", nargs='?', default="#DefaultChatroom")
+parser.add_argument("-c", "--channel", nargs='?', default="#DefaultChannel")
 parser.add_argument("-k", "--karmafile", nargs='?', default=".karmascores")
 parser.add_argument("-a", "--statsfile", nargs='?', default=".stats")
 parser.add_argument("-z", "--scramblefile", nargs='?', default=".scrambles")
@@ -209,6 +214,14 @@ def quoteMessage(sender, message):
         return
 
     message = message[1:]
+    try:
+        message.encode("ascii")
+    except:
+        return "no thank you :("
+    if message.isdigit():
+        anonSay("I think you want .getquote "+message)
+        qu = specificQuote(message)
+        return qu
     quotes.append(message)
 
     with open(args.quotefile, 'a') as f:
@@ -260,6 +273,7 @@ def randomQuote():
     return quotes[random.randint(0, len(quotes)-1)]
 
 def deliver_any_messages(target):
+    target = target.lower()
     if target in left_messages:
         msgs = left_messages[target]
         for msg in msgs:
@@ -277,6 +291,7 @@ def computeResponse(sender, message, channel):
 
     if sender:
         setStats(sender)
+        deliver_any_messages(sender)
 
     # if the ++/-- operator is present at the end of the line
     if message[-2:] in ["++", "--"] and message.upper().find("C++") < 0:
@@ -328,7 +343,8 @@ def computeResponse(sender, message, channel):
             return "%s has %i karma" % (subject, getPoints(subject))
         else:
             setPoints(message.lstrip(), netgain)
-            return "\"%s\" has %i point%s" % (message, getPoints(message), ["s", ""][getPoints(message)==1])
+            return 
+            #return "\"%s\" has %i point%s" % (message, getPoints(message), ["s", ""][getPoints(message)==1])
 
     # if the ++/-- operator is at the start, reprocess as if it were at the end
     elif message[:2] in ["++", "--"]:
@@ -360,6 +376,52 @@ def computeResponse(sender, message, channel):
 
             return [top_users[:-1], top_phrases[:-1]]
 
+    elif func.startswith("https://twitter.com/"):
+        try:
+            url = func
+            content = urllib.urlopen(url).read()
+            doc = fromstring(content)
+            doc.make_links_absolute(url)
+            
+            name_sel = CSSSelector(".permalink-tweet .username")
+            text_sel = CSSSelector(".permalink-tweet .tweet-text")
+            
+            regex = re.compile("[<].*?[>]")
+            
+            username = re.sub(regex, "", tostring(name_sel(doc)[0])).strip()
+            tweet = re.sub(regex, "", tostring(text_sel(doc)[0])).strip()
+
+            tweet = tweet.replace("pic.twitter", " pic.twitter")
+
+            return "<"+username+"> "+tweet
+
+        except:
+            pass
+
+
+    elif func == ".listquotes" or func == ".listquote":
+        counter = 0
+        allquotes = ""
+        subquotes = quotes
+        total_quotes = len(quotes)
+        if total_quotes > 5:
+            counter = total_quotes - 5
+            subquotes = quotes[total_quotes-5:]
+        sendTo(sender, "Here are the last 5 quotes:")
+
+        for quote in subquotes:
+            counter += 1
+            sendTo(sender, str(counter)+": "+quote.rstrip("\n") )
+            #allquotes += str(counter)+": "+quote.rstrip("\n") + "  /   "
+        # goo 400 at a time
+       # allquotes = allquotes[:-5]
+       # for x in range(0, len(allquotes), 400):
+       #     sendTo(sender, allquotes[x:x+400])
+
+        sendTo(sender, "and here's all of 'em: http://wiiu.vgmoose.com/quotes.txt")
+
+        return "sent all quotes to " + sender + "!"
+
     elif func == "stats":
         if len(splitmsg) == 2:
             subject = splitmsg[1].lstrip()
@@ -371,6 +433,21 @@ def computeResponse(sender, message, channel):
             sorted_stats.reverse()
             for tup in sorted_stats:
                 if tup[0] in currentusers and count_users < 5:
+                    top_users += " %s=%i," % scramble(tup)
+                    count_users += 1
+            return top_users[:-1]
+
+    elif func == "morestats":
+        if len(splitmsg) == 2:
+            subject = splitmsg[1].lstrip()
+            return computeResponse(sender, subject+"``", channel)
+        elif len(splitmsg) == 1:
+            top_users = "Top 10 Users by Volume:"
+            count_users = 0
+            sorted_stats = sorted(stats.iteritems(), key=operator.itemgetter(1))
+            sorted_stats.reverse()
+            for tup in sorted_stats:
+                if tup[0] in currentusers and count_users < 10:
                     top_users += " %s=%i," % scramble(tup)
                     count_users += 1
             return top_users[:-1]
@@ -460,7 +537,7 @@ def computeResponse(sender, message, channel):
             return specificQuote(spltmsg[1])
         return randomQuote()
 
-    elif func == "tell":
+    elif func == "tell" or func == ".tell":
         splitmsg = message.split(' ')
         if len(splitmsg) > 2:
            splitmsg[1] = splitmsg[1].lower()
@@ -471,7 +548,7 @@ def computeResponse(sender, message, channel):
         with open(args.msgfile, 'wb') as file:
             pickle.dump(left_messages, file)
 
-        return "will notify "+splitmsg[1]+" when they sign on"
+        return "will notify "+splitmsg[1]+" when they sign on or send a message"
 
 while 1:
     # read in lines from the socket
@@ -519,6 +596,10 @@ while 1:
                     with open(args.userfile, 'a') as f:
                         f.write(u + '\n')
             deliver_any_messages(u)
+
+        elif line[1] == "KICK":
+            # rejoin when kicked
+            s.send(bytes("JOIN %s\r\n" % args.channel));
                
         elif line[1] == "433":
             args.nick = line[2]
