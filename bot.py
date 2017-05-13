@@ -287,7 +287,7 @@ def deliver_any_messages(target):
 def computeResponse(sender, message, channel):
     global args
     splitmsg = message.split(' ')
-    func = splitmsg[0]
+    func = splitmsg[0].lower()
 
     if sender:
         setStats(sender)
